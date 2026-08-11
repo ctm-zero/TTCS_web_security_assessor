@@ -31,4 +31,4 @@ Thumbs.db
 *.log
 logs/
 
-create_skeleton.ps1
+/create_skeleton.ps1

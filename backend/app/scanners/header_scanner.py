@@ -1,8 +1,11 @@
 import httpx
 from typing import Tuple, Dict, Any, Optional
+import asyncio
 
 
-async def fetch_headers(url: str) -> Tuple[Optional[httpx.Response], Dict[str, str], Dict[str, Any]]:
+async def fetch_headers(
+    url: str,
+) -> Tuple[Optional[httpx.Response], Dict[str, str], Dict[str, Any]]:
     """Fetch a URL and return the raw response, a normalized headers dict, and metadata.
 
     Normalizes header keys by lowercasing them to avoid case-sensitivity bugs.
@@ -46,5 +49,11 @@ async def print_normalized_headers(url: str) -> None:
     else:
         print("No headers retrieved.")
 
-    
-    
+
+async def main():
+    test_url = "https://lapazyenthuy.com/"
+    await print_normalized_headers(test_url)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

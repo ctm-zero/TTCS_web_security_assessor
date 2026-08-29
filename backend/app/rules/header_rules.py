@@ -1,7 +1,6 @@
 from typing import Dict, Any
 import re
 
-
 def _parse_max_age(hvalue: str) -> int:
     m = re.search(r"max-age\s*=\s*(\d+)", hvalue, flags=re.IGNORECASE)
     if m:
@@ -12,7 +11,8 @@ def _parse_max_age(hvalue: str) -> int:
     return 0
 
 
-def check_security_headers(headers: Dict[str, str], meta: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+def check_security_headers(
+    headers: Dict[str, str], meta: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """Evaluate important security headers per OWASP Security Response Header Cheat Sheet.
 
     Args:
@@ -112,3 +112,72 @@ def check_security_headers(headers: Dict[str, str], meta: Dict[str, Any]) -> Dic
         add("server", False, None, "pass", "No Server header")
     """
     return results
+
+def check_server_information_disclosure(
+    headers: dict[str, str],
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Check for unnecessary server technology information disclosure.
+
+    Args:
+        headers: HTTP response headers with lowercase keys.
+
+    Returns:
+        A dictionary of security findings.
+    """
+
+    findings = {}
+
+    # Server header
+    server = headers.get("server")
+    
+    def add_finding(code: str, title: str, message: str, details: str):
+        findings[code] = {
+            "category": "headers",
+            "title": title,
+            "message": message,
+            "details": details,
+        }
+
+    if server:
+        add_finding(
+            "SERVER_INFORMATION_DISCLOSURE",
+            "Server Information Disclosure",
+            "The Server header discloses information about the web server.",
+            server
+        )
+
+    # X-Powered-By header
+    powered_by = headers.get("x-powered-by")
+
+    if powered_by:
+        add_finding(
+            "X_POWERED_BY_INFORMATION_DISCLOSURE",
+            "X-Powered-By Information Disclosure",
+            "The X-Powered-By header discloses information about the underlying technology.",
+            powered_by
+        )
+
+    return findings
+
+if __name__ == "__main__":
+    # Test the security header checks with a sample headers dictionary
+    test_headers = {
+        "server": "nginx/1.18.0",
+        "x-powered-by": "PHP/8.1",
+        "x-content-type-options": "invalid-value", # This is an invalid value for testing
+        "x-frame-options": "ALLOW", # This is an invalid value for testing
+    }
+    
+    meta = {
+        "is_https": True
+    }
+
+    print("--- Security Header Checks ---")
+    findings = check_security_headers(test_headers, meta)
+    for header, result in findings.items():
+        print(f"{header}: {result}")
+    print("\n--- Server Information Disclosure Checks ---")
+    disclosure_findings = check_server_information_disclosure(test_headers)
+    for finding, result in disclosure_findings.items():
+        print(f"{finding}: {result}")

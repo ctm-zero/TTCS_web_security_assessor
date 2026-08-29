@@ -28,7 +28,7 @@ def parse_cookie_header(cookie_header: str) -> dict[str, Any]:
     return {}
 
 
-def parse_cookie_headers(
+def parse_multiple_cookie_headers(
     cookie_headers: list[str],
 ) -> list[dict[str, Any]]:
     """
@@ -51,6 +51,6 @@ if __name__ == "__main__":
         "userid=xyz789; Path=/; Domain=example.com; Expires=Wed, 09 Jun 2021 10:18:14 GMT",
     ]
 
-    parsed_cookies = parse_cookie_headers(cookie_headers)
+    parsed_cookies = parse_multiple_cookie_headers(cookie_headers)
     for cookie in parsed_cookies:
         print(cookie)

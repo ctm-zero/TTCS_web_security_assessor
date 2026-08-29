@@ -131,33 +131,21 @@ def check_server_information_disclosure(
     # Server header
     server = headers.get("server")
     
-    def add_finding(code: str, title: str, message: str, details: str):
-        findings[code] = {
-            "category": "headers",
-            "title": title,
-            "message": message,
-            "details": details,
-        }
-
+    def add_finding(name: str, present: bool, value: str = None, status: str = "warn", reason: str = ""):
+        findings[name] = {"present": present, "value": value, "status": status, "reason": reason}
+        
     if server:
-        add_finding(
-            "SERVER_INFORMATION_DISCLOSURE",
-            "Server Information Disclosure",
-            "The Server header discloses information about the web server.",
-            server
-        )
-
+        add_finding("server", True, server, "warn", "Server header discloses server software")
+    else:
+        add_finding("server", False, None, "pass", "No Server header")
+    
     # X-Powered-By header
-    powered_by = headers.get("x-powered-by")
-
-    if powered_by:
-        add_finding(
-            "X_POWERED_BY_INFORMATION_DISCLOSURE",
-            "X-Powered-By Information Disclosure",
-            "The X-Powered-By header discloses information about the underlying technology.",
-            powered_by
-        )
-
+    x_powered_by = headers.get("x-powered-by")
+    if x_powered_by:
+        add_finding("x-powered-by", True, x_powered_by, "warn", "X-Powered-By header discloses technology stack")
+    else:
+        add_finding("x-powered-by", False, None, "pass", "No X-Powered-By header")
+        
     return findings
 
 if __name__ == "__main__":

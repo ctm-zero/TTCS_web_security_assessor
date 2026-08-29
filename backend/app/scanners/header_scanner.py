@@ -34,26 +34,3 @@ async def fetch_headers(
             "is_https": str(url).lower().startswith("https"),
         }
         return None, normalized, meta
-
-
-async def print_normalized_headers(url: str) -> None:
-    """Helper for quickly printing normalized headers and meta for a URL."""
-    response, headers, meta = await fetch_headers(url)
-    print("Meta:")
-    for k, v in meta.items():
-        print(f"  {k}: {v}")
-    if headers:
-        print("Headers:")
-        for k, v in headers.items():
-            print(f"  {k}: {v}")
-    else:
-        print("No headers retrieved.")
-
-
-async def main():
-    test_url = "https://lapazyenthuy.com/"
-    await print_normalized_headers(test_url)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

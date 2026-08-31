@@ -44,22 +44,29 @@ def parse_multiple_cookie_headers(
     return cookies
 
 
-async def fetch_and_scan_cookies(url: str) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+async def fetch_and_scan_cookies(
+    url: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Self-contained function to fetch URL and parse all returned cookies using SimpleCookie."""
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(url)
             raw_cookies = response.headers.get_list("set-cookie")
             parsed_cookies = parse_multiple_cookie_headers(raw_cookies)
-            
+
             meta = {
                 "status_code": response.status_code,
                 "final_url": str(response.url),
                 "is_https": str(response.url.scheme).lower() == "https",
-                "raw_count": len(raw_cookies)
+                "raw_count": len(raw_cookies),
             }
             return parsed_cookies, meta
-            
+
     except httpx.RequestError as e:
         print(f"An error occurred while scanning cookies for {url}: {e}")
-        return [], {"status_code": None, "final_url": url, "is_https": False, "raw_count": 0}
+        return [], {
+            "status_code": None,
+            "final_url": url,
+            "is_https": False,
+            "raw_count": 0,
+        }

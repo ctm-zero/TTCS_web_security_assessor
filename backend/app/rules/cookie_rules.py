@@ -1,14 +1,6 @@
 from typing import Dict, Any
 import re
 
-def _parse_max_age(hvalue: str) -> int:
-    m = re.search(r"max-age\s*=\s*(\d+)", hvalue, flags=re.IGNORECASE)
-    if m:
-        try:
-            return int(m.group(1))
-        except ValueError:
-            return 0
-    return 0
 
 def check_cookie_attributes(cookie: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """Evaluate important cookie attributes for security.
@@ -21,8 +13,19 @@ def check_cookie_attributes(cookie: Dict[str, Any]) -> Dict[str, Dict[str, Any]]
     """
     results: Dict[str, Dict[str, Any]] = {}
 
-    def add(name: str, present: bool, value: str = None, status: str = "warn", reason: str = ""):
-        results[name] = {"present": present, "value": value, "status": status, "reason": reason}
+    def add(
+        name: str,
+        present: bool,
+        value: str = None,
+        status: str = "warn",
+        reason: str = "",
+    ):
+        results[name] = {
+            "present": present,
+            "value": value,
+            "status": status,
+            "reason": reason,
+        }
 
     # HttpOnly
     http_only = cookie.get("httponly")
@@ -42,13 +45,25 @@ def check_cookie_attributes(cookie: Dict[str, Any]) -> Dict[str, Dict[str, Any]]
     same_site = cookie.get("samesite")
     if same_site:
         if same_site.lower() in ("lax", "strict"):
-            add("samesite", True, same_site, "pass", "Cookie has SameSite attribute set to a secure value")
+            add(
+                "samesite",
+                True,
+                same_site,
+                "pass",
+                "Cookie has SameSite attribute set to a secure value",
+            )
         else:
-            add("samesite", True, same_site, "warn", "Cookie has SameSite attribute set to an insecure value")
+            add(
+                "samesite",
+                True,
+                same_site,
+                "warn",
+                "Cookie has SameSite attribute set to an insecure value",
+            )
     else:
         add("samesite", False, None, "fail", "Cookie is missing SameSite attribute")
-    
-    # Expires  
+
+    # Expires
     expires = cookie.get("expires")
     if expires:
         add("expires", True, expires, "pass", "Cookie has Expires attribute set")

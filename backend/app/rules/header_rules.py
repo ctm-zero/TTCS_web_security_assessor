@@ -41,6 +41,15 @@ def check_security_headers(
         }
 
     is_https = bool(meta.get("is_https"))
+    """
+    The following headers are core:
+    - Strict-Transport-Security (HSTS)
+    - Content-Security-Policy (CSP)
+    - X-Frame-Options
+    - X-Content-Type-Options
+    - Referrer-Policy
+    - Permission-Policy
+    """
 
     # Strict-Transport-Security (HSTS)
     hsts = headers.get("strict-transport-security")
@@ -156,12 +165,12 @@ def check_security_headers(
             )
     else:
         add("referrer-policy", False, None, "warn", "Missing Referrer-Policy")
-
-    # Permissions-Policy / Feature-Policy
-    pp = headers.get("permissions-policy") or headers.get("feature-policy")
+        
+    # Permissions-Policy
+    pp = headers.get("permissions-policy")
     if pp:
         add(
-            "permissions-policy", True, pp, "pass", "Permissions/Feature-Policy present"
+            "permissions-policy", True, pp, "pass", "Permissions-Policy present"
         )
     else:
         add(
@@ -169,23 +178,134 @@ def check_security_headers(
             False,
             None,
             "warn",
-            "Missing Permissions-Policy / Feature-Policy",
+            "Missing Permissions-Policy",
         )
 
-    # Expect-CT (optional)
-    expect_ct = headers.get("expect-ct")
-    if expect_ct:
-        add("expect-ct", True, expect_ct, "pass", "Expect-CT present")
-    else:
-        add("expect-ct", False, None, "warn", "Missing Expect-CT header")
-
-    """ Server header disclosure (could be useful)
-    server = headers.get("server")
-    if server:
-        add("server", True, server, "warn", "Server header discloses server software")
-    else:
-        add("server", False, None, "pass", "No Server header")
     """
+    The following headers are optional but recommended:
+    -X-Permitted-Cross-Domain-Policies
+    -Clear-Site-Data
+    -Cross-Origin-Resource-Policy (CORP)
+    -Cross-Origin-Embedder-Policy (COEP)
+    -Cross-Origin-Opener-Policy (COOP)
+    -Cache-Control
+    -Integrity-Policy
+    """
+    # Cai nay se co muc extra thong bao cho nguoi dung biet va dua them thong tin ve header optional,
+    # chi khi header nao cos insecure value thi moi tru diem.
+    
+    # X-Permitted-Cross-Domain-Policies
+    xpcdp = headers.get("x-permitted-cross-domain-policies")
+    if xpcdp:
+        if xpcdp.lower() in ("none", "master-only"):
+            add(
+                "x-permitted-cross-domain-policies",
+                True,
+                xpcdp,
+                "pass",
+                "X-Permitted-Cross-Domain-Policies set to a secure value",
+            )
+        else:
+            add(
+                "x-permitted-cross-domain-policies",
+                True,
+                xpcdp,
+                "warn",
+                "X-Permitted-Cross-Domain-Policies set to an insecure value",
+            )
+    
+    # Clear-Site-Data
+    csd =headers.get("clear-site-data")
+    if csd :
+        add(
+            "clear-site-data",
+            True,
+            csd,
+            "pass",
+            "Clear-Site-Data header is present",
+        )
+    
+    # Cross-Origin-Resource-Policy (CORP)
+    corp = headers.get("cross-origin-resource-policy")
+    if corp:
+        if corp.lower() in ("same-origin", "same-site"):
+            add(
+                "cross-origin-resource-policy",
+                True,
+                corp,
+                "pass",
+                "Cross-Origin-Resource-Policy set to a secure value",
+            )
+        else:
+            add(
+                "cross-origin-resource-policy",
+                True,
+                corp,
+                "warn",
+                "Cross-Origin-Resource-Policy set to an insecure value",
+            )
+            
+    # Cross-Origin-Embedder-Policy (COEP)
+    coep = headers.get("cross-origin-embedder-policy")
+    if coep:
+        if coep.lower() == "require-corp":
+            add(
+                "cross-origin-embedder-policy",
+                True,
+                coep,
+                "pass",
+                "Cross-Origin-Embedder-Policy set to a secure value",
+            )
+        else:
+            add(
+                "cross-origin-embedder-policy",
+                True,
+                coep,
+                "warn",
+                "Cross-Origin-Embedder-Policy set to an insecure value",
+            )
+            
+    # Cross-Origin-Opener-Policy (COOP)
+    coop = headers.get("cross-origin-opener-policy")
+    if coop:
+        if coop.lower() in ("same-origin", "same-origin-allow-popups"):
+            add(
+                "cross-origin-opener-policy",
+                True,
+                coop,
+                "pass",
+                "Cross-Origin-Opener-Policy set to a secure value",
+            )
+        else:
+            add(
+                "cross-origin-opener-policy",
+                True,
+                coop,
+                "warn",
+                "Cross-Origin-Opener-Policy set to an insecure value",
+            )
+    
+    #Cache-Control
+    cache_control = headers.get("cache-control")
+    if cache_control:
+        add(
+            "cache-control",
+            True,
+            cache_control,
+            "pass",
+            "Cache-Control header is present",
+        )
+        
+    # Integrity-Policy
+    integrity_policy = headers.get("integrity-policy")
+    if integrity_policy:
+        add(
+            "integrity-policy",
+            True,
+            integrity_policy,
+            "pass",
+            "Integrity-Policy header is present",
+        )
     return results
 
 

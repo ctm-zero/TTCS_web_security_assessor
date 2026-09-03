@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-import datetime
+from datetime import datetime, timezone
 
 
 def check_tls_attributes(tls_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
@@ -79,8 +79,8 @@ def check_tls_attributes(tls_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     if cert_pem:
         try:
             cert = x509.load_pem_x509_certificate(cert_pem.encode(), default_backend())
-            now = datetime.datetime.utcnow()
-            expired_at = cert.not_valid_after
+            now = datetime.now(timezone.utc)
+            expired_at = cert.not_valid_after_utc
             days_left = (expired_at - now).days
 
             if days_left < 0:

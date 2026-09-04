@@ -48,7 +48,6 @@ def check_security_headers(
     - X-Frame-Options
     - X-Content-Type-Options
     - Referrer-Policy
-    - Permission-Policy
     """
 
     # Strict-Transport-Security (HSTS)
@@ -56,7 +55,7 @@ def check_security_headers(
     if is_https:
         if hsts:
             max_age = _parse_max_age(hsts)
-            if max_age >= 31536000:
+            if max_age >= 15768000: # 6 months in seconds
                 add(
                     "strict-transport-security",
                     True,
@@ -64,6 +63,8 @@ def check_security_headers(
                     "pass",
                     "HSTS set with adequate max-age",
                 )
+                if "preload" in hsts.lower():
+                    results["strict-transport-security"]["reason"] += " and preloaded"
             else:
                 add(
                     "strict-transport-security",
@@ -102,8 +103,12 @@ def check_security_headers(
             )
         else:
             add("content-security-policy", True, csp, "pass", "CSP present")
+            if "default-src 'none'" in csp:
+                results["content-security-policy"]["reason"] += " and default-src 'none'"
+            if "form-action 'none'" in csp or "form-action 'self'" in csp:
+                results["content-security-policy"]["reason"] += " and form-action restricted"
     else:
-        add("content-security-policy", False, None, "warn", "Missing CSP")
+        add("content-security-policy", False, None, "fail", "Missing CSP")
 
     # X-Frame-Options
     xfo = headers.get("x-frame-options")
@@ -123,7 +128,7 @@ def check_security_headers(
             "x-frame-options",
             False,
             None,
-            "warn",
+            "fail",
             "Missing X-Frame-Options (clickjacking protection)",
         )
 
@@ -166,21 +171,6 @@ def check_security_headers(
     else:
         add("referrer-policy", False, None, "warn", "Missing Referrer-Policy")
         
-    # Permissions-Policy
-    pp = headers.get("permissions-policy")
-    if pp:
-        add(
-            "permissions-policy", True, pp, "pass", "Permissions-Policy present"
-        )
-    else:
-        add(
-            "permissions-policy",
-            False,
-            None,
-            "warn",
-            "Missing Permissions-Policy",
-        )
-
     """
     The following headers are optional but recommended:
     -X-Permitted-Cross-Domain-Policies
@@ -191,8 +181,6 @@ def check_security_headers(
     -Cache-Control
     -Integrity-Policy
     """
-    # Cai nay se co muc extra thong bao cho nguoi dung biet va dua them thong tin ve header optional,
-    # chi khi header nao cos insecure value thi moi tru diem.
     
     # X-Permitted-Cross-Domain-Policies
     xpcdp = headers.get("x-permitted-cross-domain-policies")

@@ -6,7 +6,7 @@ Hệ thống tiến hành rà soát sự tồn tại và cấu hình của các 
 - **Content-Security-Policy (CSP):** Phân tích các chính sách nội dung để phát hiện các cấu hình kém an toàn (như chứa các đoạn mã `unsafe-inline` hoặc `unsafe-eval`).
 - **X-Frame-Options:** Đảm bảo trang web được bảo vệ chống lại tấn công dạng Clickjacking (giá trị chuẩn là `DENY` hoặc `SAMEORIGIN`).
 - **X-Content-Type-Options:** Ngăn chặn trình duyệt tự ý đoán định kiểu dữ liệu (MIME-sniffing) với giá trị `nosniff`.
-- **Referrer-Policy & Permissions-Policy:** Đánh giá mức độ bảo vệ quyền riêng tư của người dùng và giới hạn các quyền truy cập tính năng trình duyệt.
+- **Referrer-Policy:** Đánh giá mức độ bảo vệ quyền riêng tư của người dùng và giới hạn các quyền truy cập tính năng trình duyệt.
 
 ## 2. Kiểm tra thuộc tính Cookie
 Mỗi cookie trả về từ máy chủ sẽ được kiểm tra kỹ lưỡng các thuộc tính bảo mật sau:

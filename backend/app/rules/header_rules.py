@@ -86,7 +86,7 @@ def check_security_headers(
             "strict-transport-security",
             bool(hsts),
             hsts,
-            "warn",
+            "not_applicable",
             "HSTS only applies to HTTPS responses",
         )
 
@@ -141,7 +141,7 @@ def check_security_headers(
             "x-content-type-options",
             bool(xcto),
             xcto,
-            "warn",
+            "fail",
             "Missing or incorrect X-Content-Type-Options",
         )
 
@@ -165,7 +165,7 @@ def check_security_headers(
                 "referrer-policy",
                 True,
                 rp,
-                "warn",
+                "fail",
                 "Unrecognized Referrer-Policy value",
             )
     else:

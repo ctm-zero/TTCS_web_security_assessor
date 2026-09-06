@@ -72,7 +72,7 @@ def check_tls_attributes(tls_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
                 f"Cipher suite {cipher_suite} is considered secure",
             )
     else:
-        add("cipher_suite", False, None, "fail", "Cipher suite information is missing")
+        add("cipher_suite", False, None, "warn", "Cipher suite information is missing")
 
     # Certificate Validity
     cert_pem = tls_data.get("certificate_pem")

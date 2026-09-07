@@ -103,7 +103,7 @@ def check_tls_attributes(tls_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
                 add(
                     "certificate_validity",
                     True,
-                    f"Valid from {cert.not_valid_before} to {cert.not_valid_after}",
+                    f"Valid from {cert.not_valid_before_utc.strftime('%Y-%m-%d %H:%M:%S')} to {cert.not_valid_after_utc.strftime('%Y-%m-%d %H:%M:%S')}",
                     "pass",
                     "Certificate is currently valid",
                 )

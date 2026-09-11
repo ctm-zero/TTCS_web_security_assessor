@@ -158,7 +158,8 @@ def check_security_headers(
         "strict-origin-when-cross-origin",
     }
     if rp:
-        if rp.lower() in allowed_rp:
+        rp_values = [v.strip().lower() for v in rp.split(",") if v.strip()]
+        if rp_values and all(v in allowed_rp for v in rp_values):
             add("referrer-policy", True, rp, "pass", "Referrer-Policy set")
         else:
             add(

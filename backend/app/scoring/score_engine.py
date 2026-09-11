@@ -2,7 +2,6 @@ import sys
 import os
 import asyncio
 import json
-from dataclasses import dataclass
 from typing import Dict, Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -20,6 +19,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             "headers": 0,
             "cookies": 0,
             "tls": 0,
+            "final": 0,
         },
         "details": {
             "meta": {},
@@ -202,14 +202,20 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
         has_secure = secure.get("status") == "pass"
         samesite_status = samesite.get("status")
 
-        if not has_http_only or not has_secure:
+        if (not has_secure) or (is_session_cookie and not has_http_only):
             missing = []
-            if not has_http_only:
-                missing.append(http_only.get("reason", "Missing HttpOnly"))
-            if not has_secure:
-                missing.append(secure.get("reason", "Missing Secure"))
-            this_score = SESSION_FAIL if is_session_cookie else PERSISTENT_FAIL
-            this_reason = "; ".join(missing)
+            if is_session_cookie:
+                if not has_http_only:
+                    missing.append(http_only.get("reason","Missing HttpOnly"))
+                if not has_secure:
+                    missing.append(secure.get("reason","Missing Secure"))
+                this_score = SESSION_FAIL
+                this_reason = "; ".join(missing) + "in session cookie configuration."
+            else:
+                if not has_secure:
+                    missing.append(secure.get("reason","Missing Secure"))
+                this_score = PERSISTENT_FAIL
+                this_reason = "; ".join(missing) + "in persistent cookie configuration."
         elif samesite_status == "pass":
             this_score = (
                 SESSION_SECURE_FULL if is_session_cookie else PERSISTENT_SECURE_FULL
@@ -230,14 +236,20 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
 
     cookie_score = worst_cookie_score if worst_cookie_score is not None else 0
     scoring_report["scores"]["cookies"] = cookie_score
-    scoring_report["details"]["cookie_scoring"] = {
-        "worst_cookie": (
-            {"name": worst_cookie_name, "reason": worst_cookie_reason}
-            if worst_cookie_name
-            else None
-        ),
-    }
-
+    if worst_cookie_score <0:
+        scoring_report["details"]["cookie_scoring"] = {
+            "worst_cookie": (
+                {"name": worst_cookie_name, "reason": worst_cookie_reason}
+                if worst_cookie_name
+                else None
+            ),  
+        }
+    else:
+        scoring_report["details"]["cookie_scoring"] = {
+            "worst_cookie": (
+                {"name": None, "reason": "All cookies are configured correctly"}
+                ),  
+        }
     # Score TLS
     tls_findings = scan_results.get("tls", {})
     scoring_report["details"]["tls"] = tls_findings
@@ -270,14 +282,18 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
         if cert_trust_status == "fail":
             tls_score += CERT_SELF_SIGNED
     scoring_report["scores"]["tls"] = tls_score
+    
+    # Calculate the final score
+    final_score = meta_score + header_score + cookie_score + tls_score
+    scoring_report["scores"]["final"] = final_score
 
     return scoring_report
-
 
 """
 def grading(score_result:Dict[str,Any]) -> Dict[str,Any]:
     Take scoring report and calculate the final score of the website based on letter grading
 """
+
 
 if __name__ == "__main__":
     # Example usage

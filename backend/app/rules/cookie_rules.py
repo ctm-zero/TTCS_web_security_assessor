@@ -66,15 +66,15 @@ def check_cookie_attributes(cookie: Dict[str, Any]) -> Dict[str, Dict[str, Any]]
     # Expires
     expires = cookie.get("expires")
     if expires:
-        add("expires", True, expires, "pass", "Cookie has Expires attribute set")
+        add("expires", True, expires, "not_applicable", "Cookie has Expires attribute set")
     else:
-        add("expires", False, None, "warn", "Cookie is missing Expires attribute")
+        add("expires", False, None, "not_applicable", "Cookie doesn't contain Expires attribute")
 
     # Max-Age
     max_age = cookie.get("max_age")
     if max_age is not None:
-        add("max_age", True, str(max_age), "pass", "Cookie has Max-Age attribute set")
+        add("max_age", True, str(max_age), "not_applicable", "Cookie has Max-Age attribute set")
     else:
-        add("max_age", False, None, "warn", "Cookie is missing Max-Age attribute")
+        add("max_age", False, None, "not_applicable", "Cookie doesn't contain Max-Age attribute")
 
     return results

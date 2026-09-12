@@ -301,7 +301,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     scoring_report["scores"]["tls"] = tls_score
     
     # Calculate the final score
-    final_score = meta_score + header_score + cookie_score + tls_score
+    final_score = BASELINE + header_score + cookie_score + tls_score
     scoring_report["scores"]["final"] = final_score
     
     # Grading

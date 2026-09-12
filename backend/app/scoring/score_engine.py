@@ -7,6 +7,23 @@ from typing import Dict, Any
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from app.services.scan_service import scan_url
 
+def grading(final_score):
+    grade = None
+    if final_score >= 95:
+        grade = "A+"
+    elif final_score >= 85:
+        grade = "A"
+    elif final_score >= 70:
+        grade = "B"
+    elif final_score >= 55:
+        grade = "C"
+    elif final_score >= 40:
+        grade = "D"
+    elif final_score >= 20:
+        grade = "E"
+    else:
+        grade = "F"
+    return grade
 
 def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     """Score the scan results based on predefined rules and return a structured scoring report."""
@@ -14,8 +31,9 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     # Initialize scoring report
     scoring_report: Dict[str, Any] = {
         "meta": scan_results.get("meta", {}),
+        "grading": None,
         "scores": {
-            "meta": 0,
+            "baseline": 0,
             "headers": 0,
             "cookies": 0,
             "tls": 0,
@@ -91,13 +109,12 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
 
     # Score Meta
     is_https = bool(scoring_report["meta"].get("is_https"))
-    meta_score = BASELINE
     if not is_https:
-        meta_score += NOT_HTTPS
+        BASELINE += NOT_HTTPS
         status, reason = "fail", "Site is not served over HTTPS"
     else:
         status, reason = "pass", "Site is served under HTTPS"
-    scoring_report["scores"]["meta"] = meta_score
+    scoring_report["scores"]["baseline"] = BASELINE
     scoring_report["details"]["meta"] = {
         "https_enforced": {
             "present": True,
@@ -286,14 +303,12 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     # Calculate the final score
     final_score = meta_score + header_score + cookie_score + tls_score
     scoring_report["scores"]["final"] = final_score
+    
+    # Grading
+    grade = grading(final_score)
+    scoring_report["grading"] = grade
 
     return scoring_report
-
-"""
-def grading(score_result:Dict[str,Any]) -> Dict[str,Any]:
-    Take scoring report and calculate the final score of the website based on letter grading
-"""
-
 
 if __name__ == "__main__":
     # Example usage

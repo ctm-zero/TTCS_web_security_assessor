@@ -253,7 +253,8 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
 
     cookie_score = worst_cookie_score if worst_cookie_score is not None else 0
     scoring_report["scores"]["cookies"] = cookie_score
-    if worst_cookie_score <0:
+
+    if worst_cookie_score is not None and worst_cookie_score < 0:
         scoring_report["details"]["cookie_scoring"] = {
             "worst_cookie": (
                 {"name": worst_cookie_name, "reason": worst_cookie_reason}

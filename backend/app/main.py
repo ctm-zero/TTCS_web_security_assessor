@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from services import scan_service
+from scoring import score_engine
 
 app = FastAPI(title="Web Security Assessor API", version="0.1.0")
 
@@ -55,7 +56,10 @@ async def run_scan(request: ScanRequest):
     target_url = str(request.url)
     try:
         scan_results = await scan_service.scan_url(target_url)
-        return scan_results
+        
+        scoring_report = score_engine.score_results(scan_results)
+        
+        return scoring_report
     except Exception as e:
         print(f"Error during scan: {e}")
         raise HTTPException(status_code=500, detail=str(e))

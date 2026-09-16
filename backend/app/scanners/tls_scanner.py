@@ -1,7 +1,7 @@
 import ssl
 import asyncio
 from urllib.parse import urlparse
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any
 
 
 async def fetch_tls(url: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:

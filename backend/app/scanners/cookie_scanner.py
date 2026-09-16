@@ -1,7 +1,6 @@
 import httpx
 from http.cookies import SimpleCookie
 from typing import List, Dict, Any, Tuple
-import asyncio
 
 
 def parse_cookie_header(cookie_header: str) -> Dict[str, Any]:

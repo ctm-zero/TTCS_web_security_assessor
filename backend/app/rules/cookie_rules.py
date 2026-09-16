@@ -1,5 +1,4 @@
 from typing import Dict, Any
-import re
 
 
 def check_cookie_attributes(cookie: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:

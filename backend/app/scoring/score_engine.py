@@ -1,11 +1,5 @@
-import sys
-import os
-import asyncio
-import json
 from typing import Dict, Any
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-from app.services.scan_service import scan_url
 
 def grading(final_score):
     grade = None
@@ -24,6 +18,7 @@ def grading(final_score):
     else:
         grade = "F"
     return grade
+
 
 def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     """Score the scan results based on predefined rules and return a structured scoring report."""
@@ -223,14 +218,14 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             missing = []
             if is_session_cookie:
                 if not has_http_only:
-                    missing.append(http_only.get("reason","Missing HttpOnly"))
+                    missing.append(http_only.get("reason", "Missing HttpOnly"))
                 if not has_secure:
-                    missing.append(secure.get("reason","Missing Secure"))
+                    missing.append(secure.get("reason", "Missing Secure"))
                 this_score = SESSION_FAIL
                 this_reason = "; ".join(missing) + "in session cookie configuration."
             else:
                 if not has_secure:
-                    missing.append(secure.get("reason","Missing Secure"))
+                    missing.append(secure.get("reason", "Missing Secure"))
                 this_score = PERSISTENT_FAIL
                 this_reason = "; ".join(missing) + "in persistent cookie configuration."
         elif samesite_status == "pass":
@@ -260,13 +255,13 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
                 {"name": worst_cookie_name, "reason": worst_cookie_reason}
                 if worst_cookie_name
                 else None
-            ),  
+            ),
         }
     else:
         scoring_report["details"]["cookie_scoring"] = {
             "worst_cookie": (
                 {"name": None, "reason": "All cookies are configured correctly"}
-                ),  
+            ),
         }
     # Score TLS
     tls_findings = scan_results.get("tls", {})
@@ -300,26 +295,13 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
         if cert_trust_status == "fail":
             tls_score += CERT_SELF_SIGNED
     scoring_report["scores"]["tls"] = tls_score
-    
+
     # Calculate the final score
     final_score = BASELINE + header_score + cookie_score + tls_score
     scoring_report["scores"]["final"] = final_score
-    
+
     # Grading
     grade = grading(final_score)
     scoring_report["grading"] = grade
 
     return scoring_report
-
-if __name__ == "__main__":
-    # Example usage
-    async def run_test():
-        test_url = "https://github.com/"
-        print(f"Scanning URL: {test_url}")
-
-        scan_results = await scan_url(test_url)
-        scoring_report = score_results(scan_results)
-        print("Scoring Report:")
-        print(json.dumps(scoring_report, indent=4))
-
-    asyncio.run(run_test())

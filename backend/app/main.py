@@ -1,15 +1,14 @@
-﻿from fastapi import FastAPI, HTTPException, Request  # type: ignore[reportMissingImports]
-from fastapi.middleware.cors import CORSMiddleware  # type: ignore[reportMissingImports]
-from pydantic import BaseModel, HttpUrl
-import sys
-import os
+﻿from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from backend.app.api.scan import router as scan_router
 
-from services import scan_service
-from scoring import score_engine
 
-app = FastAPI(title="Web Security Assessor API", version="0.1.0")
+app = FastAPI(
+    title="Web Security Assessor API",
+    version="0.1.0",
+)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,12 +27,14 @@ app.add_middleware(
 @app.middleware("http")
 async def add_security_header(request: Request, call_next):
     response = await call_next(request)
+
     response.headers["Strict-Transport-Security"] = (
         "max-age=31536000; includeSubDomains"
     )
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["server"] = "SecureServer"
+    response.headers["Server"] = "SecureServer"
+
     return response
 
 
@@ -47,19 +48,4 @@ def health():
     return {"status": "ok"}
 
 
-class ScanRequest(BaseModel):
-    url: HttpUrl
-
-
-@app.post("/api/scan")
-async def run_scan(request: ScanRequest):
-    target_url = str(request.url)
-    try:
-        scan_results = await scan_service.scan_url(target_url)
-        
-        scoring_report = score_engine.score_results(scan_results)
-        
-        return scoring_report
-    except Exception as e:
-        print(f"Error during scan: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+app.include_router(scan_router)

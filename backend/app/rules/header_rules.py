@@ -55,7 +55,7 @@ def check_security_headers(
     if is_https:
         if hsts:
             max_age = _parse_max_age(hsts)
-            if max_age >= 15768000: # 6 months in seconds
+            if max_age >= 15768000:  # 6 months in seconds
                 add(
                     "strict-transport-security",
                     True,
@@ -104,9 +104,13 @@ def check_security_headers(
         else:
             add("content-security-policy", True, csp, "pass", "CSP present")
             if "default-src 'none'" in csp:
-                results["content-security-policy"]["reason"] += " and default-src 'none'"
+                results["content-security-policy"][
+                    "reason"
+                ] += " and default-src 'none'"
             if "form-action 'none'" in csp or "form-action 'self'" in csp:
-                results["content-security-policy"]["reason"] += " and form-action restricted"
+                results["content-security-policy"][
+                    "reason"
+                ] += " and form-action restricted"
     else:
         add("content-security-policy", False, None, "fail", "Missing CSP")
 
@@ -171,7 +175,7 @@ def check_security_headers(
             )
     else:
         add("referrer-policy", False, None, "warn", "Missing Referrer-Policy")
-        
+
     """
     The following headers are optional but recommended:
     -X-Permitted-Cross-Domain-Policies
@@ -182,7 +186,7 @@ def check_security_headers(
     -Cache-Control
     -Integrity-Policy
     """
-    
+
     # X-Permitted-Cross-Domain-Policies
     xpcdp = headers.get("x-permitted-cross-domain-policies")
     if xpcdp:
@@ -202,10 +206,10 @@ def check_security_headers(
                 "warn",
                 "X-Permitted-Cross-Domain-Policies set to an insecure value",
             )
-    
+
     # Clear-Site-Data
-    csd =headers.get("clear-site-data")
-    if csd :
+    csd = headers.get("clear-site-data")
+    if csd:
         add(
             "clear-site-data",
             True,
@@ -213,7 +217,7 @@ def check_security_headers(
             "pass",
             "Clear-Site-Data header is present",
         )
-    
+
     # Cross-Origin-Resource-Policy (CORP)
     corp = headers.get("cross-origin-resource-policy")
     if corp:
@@ -233,7 +237,7 @@ def check_security_headers(
                 "warn",
                 "Cross-Origin-Resource-Policy set to an insecure value",
             )
-            
+
     # Cross-Origin-Embedder-Policy (COEP)
     coep = headers.get("cross-origin-embedder-policy")
     if coep:
@@ -253,7 +257,7 @@ def check_security_headers(
                 "warn",
                 "Cross-Origin-Embedder-Policy set to an insecure value",
             )
-            
+
     # Cross-Origin-Opener-Policy (COOP)
     coop = headers.get("cross-origin-opener-policy")
     if coop:
@@ -273,8 +277,8 @@ def check_security_headers(
                 "warn",
                 "Cross-Origin-Opener-Policy set to an insecure value",
             )
-    
-    #Cache-Control
+
+    # Cache-Control
     cache_control = headers.get("cache-control")
     if cache_control:
         add(
@@ -284,7 +288,7 @@ def check_security_headers(
             "pass",
             "Cache-Control header is present",
         )
-        
+
     # Integrity-Policy
     integrity_policy = headers.get("integrity-policy")
     if integrity_policy:
@@ -351,24 +355,3 @@ def check_server_information_disclosure(
         add_finding("x-powered-by", False, None, "pass", "No X-Powered-By header")
 
     return findings
-
-
-if __name__ == "__main__":
-    # Test the security header checks with a sample headers dictionary
-    test_headers = {
-        "server": "nginx/1.18.0",
-        "x-powered-by": "PHP/8.1",
-        "x-content-type-options": "invalid-value",  # This is an invalid value for testing
-        "x-frame-options": "ALLOW",  # This is an invalid value for testing
-    }
-
-    meta = {"is_https": True}
-
-    print("--- Security Header Checks ---")
-    findings = check_security_headers(test_headers, meta)
-    for header, result in findings.items():
-        print(f"{header}: {result}")
-    print("\n--- Server Information Disclosure Checks ---")
-    disclosure_findings = check_server_information_disclosure(test_headers)
-    for finding, result in disclosure_findings.items():
-        print(f"{finding}: {result}")

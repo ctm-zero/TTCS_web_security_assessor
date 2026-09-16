@@ -1,6 +1,5 @@
 import httpx
 from typing import Tuple, Dict, Any, Optional
-import asyncio
 
 
 async def fetch_headers(

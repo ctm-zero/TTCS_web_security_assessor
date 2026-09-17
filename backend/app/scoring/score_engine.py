@@ -20,6 +20,66 @@ def grading(final_score):
     return grade
 
 
+BASELINE = 100
+# Points for Meta
+NOT_HTTPS = -50
+
+# Points for Headers
+
+HSTS_PASS_PRELOADED = 2
+HSTS_PASS = 0
+HSTS_WARN = -7
+HSTS_FAIL = -15
+
+CSP_PASS_RESTRICTIVE = 3
+CSP_PASS = 0
+CSP_WARN = -10
+CSP_FAIL = -20
+
+XFO_PASS = 0
+XFO_WARN = -5
+XFO_FAIL = -15
+
+XCTO_PASS = 0
+XCTO_FAIL = -5
+
+REFERRER_PASS = 5
+REFERRER_MISSING = 0
+REFERRER_INVALID = -3
+
+OPTIONAL_BONUS = 5
+
+SERVER_DISCLOSE = -3
+X_POWERED_DISCLOSE = -3
+
+# String marker for bonus points in header
+HSTS_PRELOADED_MARKER = "HSTS set with adequate max-age and preloaded"
+CSP_RESTRICTIVE_MARKER = "CSP present and default-src 'none' and form-action restricted"
+
+# Points for Cookie
+SESSION_SECURE_FULL = 0  # Session cookie: HttpOnly + Secure + valid SameSite value
+SESSION_SECURE_PARTIAL = (
+    -15
+)  # Session cookie: HttpOnly + Secure, missing/bad SameSite value
+SESSION_FAIL = -30  # Session cookie: missing HttpOnly or Secure
+PERSISTENT_SECURE_FULL = (
+    0  # Persistent cookie: HttpOnly + Secure + valid SameSite value
+)
+PERSISTENT_SECURE_PARTIAL = (
+    -7
+)  # Persistent cookie: HttpOnly + Secure, missing/bad SameSite value
+PERSISTENT_FAIL = -15  # Persistent cookie: missing HttpOnly or Secure
+
+# Points for TLS/SSL
+TLS_VERSION_FAIL = -40
+CIPHER_SUITE_WEAK = -30
+CIPHER_SUITE_MISSING = -20
+CERT_EXPIRED = -40
+CERT_WARN = -10
+CERT_SELF_SIGNED = -25
+CERT_PARSING_FAILED = -20
+
+
 def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     """Score the scan results based on predefined rules and return a structured scoring report."""
 
@@ -41,75 +101,18 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             "tls": {},
         },
     }
-    BASELINE = 100
-    # Points for Meta
-    NOT_HTTPS = -50
 
-    # Points for Headers
 
-    HSTS_PASS_PRELOADED = 2
-    HSTS_PASS = 0
-    HSTS_WARN = -7
-    HSTS_FAIL = -15
-
-    CSP_PASS_RESTRICTIVE = 3
-    CSP_PASS = 0
-    CSP_WARN = -10
-    CSP_FAIL = -20
-
-    XFO_PASS = 0
-    XFO_WARN = -5
-    XFO_FAIL = -15
-
-    XCTO_PASS = 0
-    XCTO_FAIL = -5
-
-    REFERRER_PASS = 5
-    REFERRER_MISSING = 0
-    REFERRER_INVALID = -3
-
-    OPTIONAL_BONUS = 5
-
-    SERVER_DISCLOSE = -3
-    X_POWERED_DISCLOSE = -3
-
-    # String marker for bonus points in header
-    HSTS_PRELOADED_MARKER = "HSTS set with adequate max-age and preloaded"
-    CSP_RESTRICTIVE_MARKER = (
-        "CSP present and default-src 'none' and form-action restricted"
-    )
-
-    # Points for Cookie
-    SESSION_SECURE_FULL = 0  # Session cookie: HttpOnly + Secure + valid SameSite value
-    SESSION_SECURE_PARTIAL = (
-        -15
-    )  # Session cookie: HttpOnly + Secure, missing/bad SameSite value
-    SESSION_FAIL = -30  # Session cookie: missing HttpOnly or Secure
-    PERSISTENT_SECURE_FULL = (
-        0  # Persistent cookie: HttpOnly + Secure + valid SameSite value
-    )
-    PERSISTENT_SECURE_PARTIAL = (
-        -7
-    )  # Persistent cookie: HttpOnly + Secure, missing/bad SameSite value
-    PERSISTENT_FAIL = -15  # Persistent cookie: missing HttpOnly or Secure
-
-    # Points for TLS/SSL
-    TLS_VERSION_FAIL = -40
-    CIPHER_SUITE_WEAK = -30
-    CIPHER_SUITE_MISSING = -20
-    CERT_EXPIRED = -40
-    CERT_WARN = -10
-    CERT_SELF_SIGNED = -25
-    CERT_PARSING_FAILED = -20
-
-    # Score Meta
+# Score Meta
+def score_meta(scoring_report: Dict[str, Any]) -> int:
+    baseline = BASELINE
     is_https = bool(scoring_report["meta"].get("is_https"))
     if not is_https:
-        BASELINE += NOT_HTTPS
+        baseline += NOT_HTTPS
         status, reason = "fail", "Site is not served over HTTPS"
     else:
         status, reason = "pass", "Site is served under HTTPS"
-    scoring_report["scores"]["baseline"] = BASELINE
+    scoring_report["scores"]["baseline"] = baseline
     scoring_report["details"]["meta"] = {
         "https_enforced": {
             "present": True,
@@ -118,10 +121,13 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             "reason": reason,
         }
     }
+    return baseline
 
-    # Score Headers
+
+# Score Headers
+def score_headers(scoring_report: Dict[str, Any]) -> int:
     # Main headers
-    header_findings = scan_results.get("headers", {})
+    header_findings = scoring_report.get("headers", {})
     scoring_report["details"]["headers"] = header_findings
     header_score = 0
 
@@ -188,9 +194,12 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
         header_score += X_POWERED_DISCLOSE
 
     scoring_report["scores"]["headers"] = header_score
+    return header_score
 
-    # Score Cookies
-    cookie_findings = scan_results.get("cookies", [])
+
+# Score Cookies
+def score_cookies(scoring_report: Dict[str, Any]) -> int:
+    cookie_findings = scoring_report.get("cookies", [])
     scoring_report["details"]["cookies"] = cookie_findings
     worst_cookie_score = None
     worst_cookie_name = None
@@ -263,8 +272,13 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
                 {"name": None, "reason": "All cookies are configured correctly"}
             ),
         }
-    # Score TLS
-    tls_findings = scan_results.get("tls", {})
+
+    return cookie_score
+
+
+# Score TLS
+def score_tls(scoring_report: Dict[str, Any]) -> int:
+    tls_findings = scoring_report.get("tls", {})
     scoring_report["details"]["tls"] = tls_findings
     tls_score = 0
 
@@ -294,10 +308,43 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
         cert_trust_status = tls_findings.get("certificate_trust", {}).get("status")
         if cert_trust_status == "fail":
             tls_score += CERT_SELF_SIGNED
-    scoring_report["scores"]["tls"] = tls_score
 
-    # Calculate the final score
-    final_score = BASELINE + header_score + cookie_score + tls_score
+    scoring_report["scores"]["tls"] = tls_score
+    return tls_score
+
+
+# Calculate the final score
+def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
+    """Score the scan results based on predefined rules and return a structured scoring report."""
+
+    # Initialize scoring report
+    scoring_report: Dict[str, Any] = {
+    "meta": scan_results.get("meta", {}),
+    "headers": scan_results.get("headers", {}),
+    "cookies": scan_results.get("cookies", []),
+    "tls": scan_results.get("tls", {}),
+    "grading": None,
+    "scores": {
+        "baseline": 0,
+        "headers": 0,
+        "cookies": 0,
+        "tls": 0,
+        "final": 0,
+    },
+    "details": {
+        "meta": {},
+        "headers": {},
+        "cookies": [],
+        "tls": {},
+    },
+}
+
+    baseline = score_meta(scoring_report)
+    header_score = score_headers(scoring_report)
+    cookie_score = score_cookies(scoring_report)
+    tls_score = score_tls(scoring_report)
+
+    final_score = baseline + header_score + cookie_score + tls_score
     scoring_report["scores"]["final"] = final_score
 
     # Grading

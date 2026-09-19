@@ -335,9 +335,15 @@ def check_server_information_disclosure(
         }
 
     if server:
-        add_finding(
-            "server", True, server, "warn", "Server header discloses server software"
-        )
+        reveals_ver = bool(re.search(r"\d", server)) # Search for number in server header (ngnix/1.18.0, apache/2.4.41)
+        if reveals_ver:
+            add_finding(
+                "server", True, server, "warn", "Server header discloses server software"
+            )
+        else:
+            add_finding(
+                "server", True, server, "pass", "Server header present but does not reveal specific software or version"
+            )
     else:
         add_finding("server", False, None, "pass", "No Server header")
 

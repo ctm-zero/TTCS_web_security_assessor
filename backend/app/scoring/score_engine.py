@@ -167,6 +167,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     hsts = header_findings.get("strict-transport-security", {})
     hsts_reason = hsts.get("reason", "")
     hsts_status = hsts.get("status")
+    hsts_delta = 0
     if hsts_status == "pass":
         is_preloaded = HSTS_PRELOADED_MARKER in hsts_reason
         hsts_delta += HSTS_PASS_PRELOADED if is_preloaded else HSTS_PASS
@@ -182,6 +183,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     csp = header_findings.get("content-security-policy", {})
     csp_reason = csp.get("reason", "")
     csp_status = csp.get("status")
+    csp_delta = 0
     if csp_status == "pass":
         is_restrictive = CSP_RESTRICTIVE_MARKER in csp_reason
         csp_delta += CSP_PASS_RESTRICTIVE if is_restrictive else CSP_PASS
@@ -194,6 +196,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
 
     xfo = header_findings.get("x-frame-options", {})
     xfo_status = xfo.get("status")
+    xfo_delta = 0
     if xfo_status == "pass":
         xfo_delta += XFO_PASS
     elif xfo_status == "warn":
@@ -205,12 +208,14 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
 
     xcto = header_findings.get("x-content-type-options", {})
     xcto_status = xcto.get("status")
+    xcto_delta = 0
     xcto_delta += XCTO_PASS if xcto_status == "pass" else XCTO_FAIL
     header_score += xcto_delta
     tag_risk(xcto, "header", "x-content-type-options", xcto_delta)
 
     rp = header_findings.get("referrer-policy", {})
     rp_status = rp.get("status")
+    rp_delta = 0
     if rp_status == "pass":
         rp_delta += REFERRER_PASS
     elif rp_status == "warn":
@@ -218,7 +223,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     else:
         rp_delta += REFERRER_INVALID
     header_score += rp_delta
-    tag_risk(rp, "header", "referrer-policy", rp)
+    tag_risk(rp, "header", "referrer-policy", rp_delta)
 
     # Check for optional header
     for optional_header in (
@@ -231,13 +236,15 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             header_score += OPTIONAL_BONUS
 
     # Check for server infomation
-    server = header_findings.get("server", {}).get("status")
-    if server == "warn":
+    server = header_findings.get("server", {})
+    server_status = server.get("status")
+    if server_status == "warn":
         header_score += SERVER_DISCLOSE
         tag_risk(server, "header", "server", SERVER_DISCLOSE)
 
-    x_powered_by = header_findings.get("x-powered-by", {}).get("status")
-    if x_powered_by == "warn":
+    x_powered_by = header_findings.get("x-powered-by", {})
+    x_powered_by_status = x_powered_by.get("status")
+    if x_powered_by_status == "warn":
         header_score += X_POWERED_DISCLOSE
         tag_risk(x_powered_by, "header", "x-powered-by", X_POWERED_DISCLOSE)
 
@@ -250,7 +257,7 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     worst_cookie_name = None
     worst_cookie_reason = None
 
-    for items in cookie_findings:
+    for cookie_index, items in enumerate(cookie_findings):
         cookie_name = items.get("cookie_name", "Unnamed_Cookie")
         attributes = items.get("attributes", {})
 

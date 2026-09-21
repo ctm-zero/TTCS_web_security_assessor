@@ -1,85 +1,5 @@
 from typing import Dict, Any
 
-
-def grading(final_score):
-    grade = None
-    if final_score >= 95:
-        grade = "A+"
-    elif final_score >= 85:
-        grade = "A"
-    elif final_score >= 70:
-        grade = "B"
-    elif final_score >= 55:
-        grade = "C"
-    elif final_score >= 40:
-        grade = "D"
-    elif final_score >= 20:
-        grade = "E"
-    else:
-        grade = "F"
-    return grade
-
-
-BASELINE = 100
-# Points for Meta
-NOT_HTTPS = -50
-
-# Points for Headers
-
-HSTS_PASS_PRELOADED = 2
-HSTS_PASS = 0
-HSTS_WARN = -7
-HSTS_FAIL = -15
-
-CSP_PASS_RESTRICTIVE = 3
-CSP_PASS = 0
-CSP_WARN = -10
-CSP_FAIL = -20
-
-XFO_PASS = 0
-XFO_WARN = -5
-XFO_FAIL = -15
-
-XCTO_PASS = 0
-XCTO_FAIL = -5
-
-REFERRER_PASS = 5
-REFERRER_MISSING = 0
-REFERRER_INVALID = -3
-
-OPTIONAL_BONUS = 5
-
-SERVER_DISCLOSE = -3
-X_POWERED_DISCLOSE = -3
-
-# String marker for bonus points in header
-HSTS_PRELOADED_MARKER = "HSTS set with adequate max-age and preloaded"
-CSP_RESTRICTIVE_MARKER = "CSP present and default-src 'none' and form-action restricted"
-
-# Points for Cookie
-SESSION_SECURE_FULL = 0  # Session cookie: HttpOnly + Secure + valid SameSite value
-SESSION_SECURE_PARTIAL = (
-    -15
-)  # Session cookie: HttpOnly + Secure, missing/bad SameSite value
-SESSION_FAIL = -30  # Session cookie: missing HttpOnly or Secure
-PERSISTENT_SECURE_FULL = (
-    0  # Persistent cookie: HttpOnly + Secure + valid SameSite value
-)
-PERSISTENT_SECURE_PARTIAL = (
-    -7
-)  # Persistent cookie: HttpOnly + Secure, missing/bad SameSite value
-PERSISTENT_FAIL = -15  # Persistent cookie: missing HttpOnly or Secure
-
-# Points for TLS/SSL
-TLS_VERSION_FAIL = -40
-CIPHER_SUITE_WEAK = -30
-CIPHER_SUITE_MISSING = -20
-CERT_EXPIRED = -40
-CERT_WARN = -10
-CERT_SELF_SIGNED = -25
-CERT_PARSING_FAILED = -20
-
-
 def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     """Score the scan results based on predefined rules and return a structured scoring report."""
 
@@ -100,12 +20,118 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             "cookies": [],
             "tls": {},
         },
+        "issues": {
+            "critical": {},
+            "high": {},
+            "medium": {},
+            "low": {},
+        }
     }
 
 
-# Score Meta
-def score_meta(scoring_report: Dict[str, Any]) -> int:
-    baseline = BASELINE
+    HSTS_PASS_PRELOADED = 2
+    HSTS_PASS = 0
+    HSTS_WARN = -7
+    HSTS_FAIL = -15
+
+    CSP_PASS_RESTRICTIVE = 3
+    CSP_PASS = 0
+    CSP_WARN = -10
+    CSP_FAIL = -20
+
+    XFO_PASS = 0
+    XFO_WARN = -5
+    XFO_FAIL = -15
+
+    XCTO_PASS = 0
+    XCTO_FAIL = -5
+
+    REFERRER_PASS = 5
+    REFERRER_MISSING = 0
+    REFERRER_INVALID = -3
+
+    OPTIONAL_BONUS = 5
+
+    SERVER_DISCLOSE = -3
+    X_POWERED_DISCLOSE = -3
+
+    # String marker for bonus points in header
+    HSTS_PRELOADED_MARKER = "HSTS set with adequate max-age and preloaded"
+    CSP_RESTRICTIVE_MARKER = (
+        "CSP present and default-src 'none' and form-action restricted"
+    )
+
+    # Points for Cookie
+    SESSION_SECURE_FULL = 0  # Session cookie: HttpOnly + Secure + valid SameSite value
+    SESSION_SECURE_PARTIAL = (
+        -15
+    )  # Session cookie: HttpOnly + Secure, missing/bad SameSite value
+    SESSION_FAIL = -30  # Session cookie: missing HttpOnly or Secure
+    PERSISTENT_SECURE_FULL = (
+        0  # Persistent cookie: HttpOnly + Secure + valid SameSite value
+    )
+    PERSISTENT_SECURE_PARTIAL = (
+        -7
+    )  # Persistent cookie: HttpOnly + Secure, missing/bad SameSite value
+    PERSISTENT_FAIL = -15  # Persistent cookie: missing HttpOnly or Secure
+
+    # Points for TLS/SSL
+    TLS_VERSION_FAIL = -40
+    CIPHER_SUITE_WEAK = -30
+    CIPHER_SUITE_MISSING = -20
+    CERT_EXPIRED = -40
+    CERT_WARN = -10
+    CERT_SELF_SIGNED = -25
+    CERT_PARSING_FAILED = -20
+    
+    # Local grading function
+    def grading(final_score):
+        grade = None
+        if final_score >= 95:
+            grade = "A+"
+        elif final_score >= 85:
+            grade = "A"
+        elif final_score >= 70:
+            grade = "B"
+        elif final_score >= 55:
+            grade = "C"
+        elif final_score >= 40:
+            grade = "D"
+        elif final_score >= 20:
+            grade = "E"
+        else:
+            grade = "F"
+        return grade
+    
+    # Local risk tagging function
+    RISK_THRESHOLDS = (
+        (30, "critical"),
+        (15, "high"),
+        (6, "medium"),
+        (1, "low"),
+    )
+    
+    def risk_level(delta):
+        abs_delta = abs(delta)
+        for threshold, level in RISK_THRESHOLDS:
+            if abs_delta >= threshold:
+                return level
+        return "none"
+    
+    def tag_risk(finding, category, item, delta, reason = None, key_suffix = None):
+        level = risk_level(delta)
+        if finding:
+            finding["risk_level"] = level
+        if level != "none":
+            issue_key = f"{category}:{item}" if key_suffix is None else f"{category}:{item}#{key_suffix}"
+            scoring_report["issues"][level][issue_key] = {
+                "category": category,
+                "item": item,
+                "reason": reason if reason is not None else finding.get("reason", "") if finding else "",
+            }
+        return level
+
+    # Score Meta
     is_https = bool(scoring_report["meta"].get("is_https"))
     if not is_https:
         baseline += NOT_HTTPS
@@ -121,7 +147,12 @@ def score_meta(scoring_report: Dict[str, Any]) -> int:
             "reason": reason,
         }
     }
-    return baseline
+    tag_risk(
+        scoring_report["details"]["meta"]["https_enforced"],
+        "meta",
+        "https_enforced",
+        NOT_HTTPS if not is_https else 0,
+    )
 
 
 # Score Headers
@@ -134,45 +165,63 @@ def score_headers(scoring_report: Dict[str, Any]) -> int:
     hsts = header_findings.get("strict-transport-security", {})
     hsts_reason = hsts.get("reason", "")
     hsts_status = hsts.get("status")
+    hsts_delta = 0
     if hsts_status == "pass":
         is_preloaded = HSTS_PRELOADED_MARKER in hsts_reason
-        header_score += HSTS_PASS_PRELOADED if is_preloaded else HSTS_PASS
+        hsts_delta += HSTS_PASS_PRELOADED if is_preloaded else HSTS_PASS
     elif hsts_status == "warn":
-        header_score += HSTS_WARN
+        hsts_delta += HSTS_WARN
     elif hsts_status == "not_applicable":
-        header_score += 0
+        hsts_delta = 0
     else:
-        header_score += HSTS_FAIL
+        hsts_delta += HSTS_FAIL
+    header_score += hsts_delta
+    tag_risk(hsts, "header", "strict-transport-security", hsts_delta)
 
     csp = header_findings.get("content-security-policy", {})
     csp_reason = csp.get("reason", "")
     csp_status = csp.get("status")
+    csp_delta = 0
     if csp_status == "pass":
         is_restrictive = CSP_RESTRICTIVE_MARKER in csp_reason
-        header_score += CSP_PASS_RESTRICTIVE if is_restrictive else CSP_PASS
+        csp_delta += CSP_PASS_RESTRICTIVE if is_restrictive else CSP_PASS
     elif csp_status == "warn":
-        header_score += CSP_WARN
+        csp_delta += CSP_WARN
     else:
-        header_score += CSP_FAIL
+        csp_delta += CSP_FAIL
+    header_score += csp_delta
+    tag_risk(csp, "header", "content-security-policy", csp_delta)
 
-    xfo_status = header_findings.get("x-frame-options", {}).get("status")
+    xfo = header_findings.get("x-frame-options", {})
+    xfo_status = xfo.get("status")
+    xfo_delta = 0
     if xfo_status == "pass":
-        header_score += XFO_PASS
+        xfo_delta += XFO_PASS
     elif xfo_status == "warn":
-        header_score += XFO_WARN
+        xfo_delta += XFO_WARN
     else:
-        header_score += XFO_FAIL
+        xfo_delta += XFO_FAIL
+    header_score += xfo_delta
+    tag_risk(xfo, "header", "x-frame-options", xfo_delta)
 
-    xcto_status = header_findings.get("x-content-type-options", {}).get("status")
-    header_score += XCTO_PASS if xcto_status == "pass" else XCTO_FAIL
+    xcto = header_findings.get("x-content-type-options", {})
+    xcto_status = xcto.get("status")
+    xcto_delta = 0
+    xcto_delta += XCTO_PASS if xcto_status == "pass" else XCTO_FAIL
+    header_score += xcto_delta
+    tag_risk(xcto, "header", "x-content-type-options", xcto_delta)
 
-    rp_status = header_findings.get("referrer-policy", {}).get("status")
+    rp = header_findings.get("referrer-policy", {})
+    rp_status = rp.get("status")
+    rp_delta = 0
     if rp_status == "pass":
-        header_score += REFERRER_PASS
+        rp_delta += REFERRER_PASS
     elif rp_status == "warn":
-        header_score += REFERRER_MISSING
+        rp_delta += REFERRER_MISSING
     else:
-        header_score += REFERRER_INVALID
+        rp_delta += REFERRER_INVALID
+    header_score += rp_delta
+    tag_risk(rp, "header", "referrer-policy", rp_delta)
 
     # Check for optional header
     for optional_header in (
@@ -185,13 +234,17 @@ def score_headers(scoring_report: Dict[str, Any]) -> int:
             header_score += OPTIONAL_BONUS
 
     # Check for server infomation
-    server = header_findings.get("server", {}).get("status")
-    if server == "warn":
+    server = header_findings.get("server", {})
+    server_status = server.get("status")
+    if server_status == "warn":
         header_score += SERVER_DISCLOSE
+        tag_risk(server, "header", "server", SERVER_DISCLOSE)
 
-    x_powered_by = header_findings.get("x-powered-by", {}).get("status")
-    if x_powered_by == "warn":
+    x_powered_by = header_findings.get("x-powered-by", {})
+    x_powered_by_status = x_powered_by.get("status")
+    if x_powered_by_status == "warn":
         header_score += X_POWERED_DISCLOSE
+        tag_risk(x_powered_by, "header", "x-powered-by", X_POWERED_DISCLOSE)
 
     scoring_report["scores"]["headers"] = header_score
     return header_score
@@ -205,7 +258,7 @@ def score_cookies(scoring_report: Dict[str, Any]) -> int:
     worst_cookie_name = None
     worst_cookie_reason = None
 
-    for items in cookie_findings:
+    for cookie_index, items in enumerate(cookie_findings):
         cookie_name = items.get("cookie_name", "Unnamed_Cookie")
         attributes = items.get("attributes", {})
 
@@ -249,6 +302,8 @@ def score_cookies(scoring_report: Dict[str, Any]) -> int:
                 else PERSISTENT_SECURE_PARTIAL
             )
             this_reason = samesite.get("reason", "SameSite missing or invalid")
+            
+        tag_risk(items, "cookie", cookie_name, this_score, reason=this_reason, key_suffix=cookie_index)
 
         if worst_cookie_score is None or worst_cookie_score > this_score:
             worst_cookie_name = cookie_name
@@ -282,32 +337,44 @@ def score_tls(scoring_report: Dict[str, Any]) -> int:
     scoring_report["details"]["tls"] = tls_findings
     tls_score = 0
 
-    tls_version_status = tls_findings.get("tls_version", {}).get("status")
+    tls_version = tls_findings.get("tls_version", {})
+    tls_version_status = tls_version.get("status")
     if tls_version_status == "fail":
         tls_score += TLS_VERSION_FAIL
+        tag_risk(tls_version, "tls", "tls_version", TLS_VERSION_FAIL)
 
-    cipher_status = tls_findings.get("cipher_suite", {}).get("status")
+    cipher = tls_findings.get("cipher_suite", {})
+    cipher_status = cipher.get("status")
     if cipher_status == "fail":
         tls_score += CIPHER_SUITE_WEAK
+        tag_risk(cipher, "tls", "cipher_suite", CIPHER_SUITE_WEAK)
     elif cipher_status == "warn":
         tls_score += CIPHER_SUITE_MISSING
+        tag_risk(cipher, "tls", "cipher_suite", CIPHER_SUITE_MISSING)
 
-    cert_parsing_status = tls_findings.get("certificate_parsing", {}).get("status")
+    cert_parsing = tls_findings.get("certificate_parsing", {})
+    cert_parsing_status = cert_parsing.get("status")
     if cert_parsing_status == "fail":
         tls_score += CERT_PARSING_FAILED
+        tag_risk(cert_parsing, "tls", "certificate_parsing", CERT_PARSING_FAILED)
     else:
-        cert_validity_status = tls_findings.get("certificate_validity", {}).get(
-            "status"
-        )
+        cert_validity = tls_findings.get("certificate_validity", {})
+        cert_validity_status = cert_validity.get("status")
         if cert_validity_status == "fail":
             tls_score += CERT_EXPIRED
+            tag_risk(cert_validity, "tls", "certificate_validity", CERT_EXPIRED)
         elif cert_validity_status == "warn":
             tls_score += CERT_WARN
+            tag_risk(cert_validity, "tls", "certificate_validity", CERT_WARN)
         else:
             tls_score += 0
-        cert_trust_status = tls_findings.get("certificate_trust", {}).get("status")
+        
+        cert_trust = tls_findings.get("certificate_trust", {})
+        cert_trust_status = cert_trust.get("status")
         if cert_trust_status == "fail":
             tls_score += CERT_SELF_SIGNED
+            tag_risk(cert_trust, "tls", "certificate_trust", CERT_SELF_SIGNED)
+    scoring_report["scores"]["tls"] = tls_score
 
     scoring_report["scores"]["tls"] = tls_score
     return tls_score

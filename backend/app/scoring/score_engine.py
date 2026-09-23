@@ -109,16 +109,15 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
     
     # Local risk tagging function
     RISK_THRESHOLDS = (
-        (30, "critical"),
-        (15, "high"),
-        (6, "medium"),
-        (1, "low"),
+        (-30, "critical"),
+        (-15, "high"),
+        (-6, "medium"),
+        (-1, "low"),
     )
     
     def risk_level(delta):
-        abs_delta = abs(delta)
         for threshold, level in RISK_THRESHOLDS:
-            if abs_delta >= threshold:
+            if delta <= threshold:
                 return level
         return "none"
     

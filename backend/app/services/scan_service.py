@@ -10,6 +10,7 @@ from backend.app.rules.cookie_rules import check_cookie_attributes
 from backend.app.scanners.tls_scanner import fetch_tls
 from backend.app.rules.tls_rules import check_tls_attributes
 from backend.app.scoring.score_engine import score_results
+from backend.app.remediation.generator import generate_remediation
 
 
 async def scan_url(url: str) -> dict[str, Any]:
@@ -89,6 +90,15 @@ async def scan_url(url: str) -> dict[str, Any]:
     }
 
     # --------------------------------------------------
-    # 5. Scoring
+    # 5. Scoring & Remediation
     # --------------------------------------------------
-    return score_results(scan_results)
+    # Chấm điểm kết quả quét
+    report = score_results(scan_results)
+    
+    # Tự động sinh hướng dẫn khắc phục dựa trên báo cáo điểm số
+    remediation_data = generate_remediation(report)
+    
+    # Đính kèm mảng remediation vào báo cáo trả về cho Frontend
+    report["remediation"] = remediation_data["remediation"]
+
+    return report

@@ -75,6 +75,32 @@ function App() {
     }
   };
 
+  // Với Cookie: chỉ hiển thị mỗi attribute lỗi một lần.
+  // Ví dụ cookie:NID#2:secure và cookie:SID#1:secure -> chỉ hiện Secure 1 lần.
+  const getDisplayedRemediationItems = () => {
+    if (!remediationData) return [];
+
+    const items = remediationData.filter((item) => {
+      if (activeTab === 'headers') return item.id?.startsWith('header:');
+      if (activeTab === 'cookie') return item.id?.startsWith('cookie:');
+      if (activeTab === 'tls') return item.id?.startsWith('tls:');
+      return false;
+    });
+
+    if (activeTab !== 'cookie') return items;
+
+    const seenAttributes = new Set();
+
+    return items.filter((item) => {
+      const attribute = item.id?.split(':').pop()?.toLowerCase();
+
+      if (!attribute || seenAttributes.has(attribute)) return false;
+
+      seenAttributes.add(attribute);
+      return true;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -249,14 +275,7 @@ function App() {
                 </div>
 
                 <div className="space-y-4 pt-2">
-                  {remediationData
-                    .filter((item) => {
-                      if (activeTab === 'headers') return item.id?.startsWith('header:');
-                      if (activeTab === 'cookie') return item.id?.startsWith('cookie:');
-                      if (activeTab === 'tls') return item.id?.startsWith('tls:');
-                      return false;
-                    })
-                    .map((item, idx) => {
+                  {getDisplayedRemediationItems().map((item, idx) => {
                       const isCookie = item.id?.startsWith('cookie:');
                       const recommendations = isCookie
                         ? [{ platform: 'application', fix: item.recommendation?.application }]
@@ -272,11 +291,11 @@ function App() {
                           <div className="flex justify-between items-center gap-3">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-bold text-amber-400">{item.title}</span>
-                              {item.severity === 'critical' || item.severity === 'high' ? (
+                              {/* {item.severity === 'critical' || item.severity === 'high' ? (
                                 <span className="bg-rose-900/50 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-800">
                                   Mức độ: {item.severity}
                                 </span>
-                              ) : null}
+                              ) : null} */}
                             </div>
                           </div>
 
@@ -320,7 +339,7 @@ function App() {
                             </div>
                           ) : (
                             <div className="text-center text-slate-500 text-sm py-6 bg-slate-900 rounded-xl border border-slate-800 border-dashed">
-                              Chưa có cấu hình remediation trực tiếp cho finding này.
+                              Chưa có cấu hình khắc phục trực tiếp cho lỗi này.
                             </div>
                           )}
 
@@ -338,14 +357,9 @@ function App() {
                       );
                     })}
 
-                  {remediationData.filter((item) => {
-                    if (activeTab === 'headers') return item.id?.startsWith('header:');
-                    if (activeTab === 'cookie') return item.id?.startsWith('cookie:');
-                    if (activeTab === 'tls') return item.id?.startsWith('tls:');
-                    return false;
-                  }).length === 0 && (
+                  {getDisplayedRemediationItems().length === 0 && (
                     <div className="text-center text-slate-500 text-sm py-8 bg-slate-950 rounded-xl border border-slate-800 border-dashed">
-                      Không phát hiện lỗ hổng cần khắc phục trong nhóm {activeTab === 'headers' ? 'Headers' : activeTab === 'cookie' ? 'Cookie' : 'TLS/SSL'}.
+                      Không phát hiện lỗi cần khắc phục trong nhóm {activeTab === 'headers' ? 'Headers' : activeTab === 'cookie' ? 'Cookie' : 'TLS/SSL'}.
                     </div>
                   )}
                 </div>
@@ -353,7 +367,6 @@ function App() {
             )}
 
             <div className="flex justify-between items-center pt-2">
-              <p className="text-xs text-slate-500">Mã định danh quét hoàn tất thành công.</p>
               <button
                 onClick={() => setShowJson(!showJson)}
                 className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition-all border border-slate-700 cursor-pointer"

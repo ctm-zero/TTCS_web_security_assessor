@@ -10,7 +10,7 @@ function App() {
   const [loadingRemediation, setLoadingRemediation] = useState(false);
   const [remediationData, setRemediationData] = useState(null);
   
-  const [activeTab, setActiveTab] = useState('nginx');
+  const [activeTab, setActiveTab] = useState('headers');
 
   // State quản lý hiệu ứng Copy
   const [copiedJson, setCopiedJson] = useState(false);
@@ -48,34 +48,7 @@ function App() {
 
     setTimeout(() => {
       const backendRemediation = result?.remediation?.remediation || result?.remediation || [];
-      
-      const nginxData = [];
-      const apacheData = [];
-
-      backendRemediation.forEach((item) => {
-        if (item.recommendation?.nginx) {
-          nginxData.push({
-            header: item.title,
-            fix: item.recommendation.nginx,
-            warnings: item.warnings || [],
-            severity: item.severity
-          });
-        }
-        if (item.recommendation?.apache) {
-          apacheData.push({
-            header: item.title,
-            fix: item.recommendation.apache,
-            warnings: item.warnings || [],
-            severity: item.severity
-          });
-        }
-      });
-
-      setRemediationData({
-        nginx: nginxData,
-        apache: apacheData
-      });
-      
+      setRemediationData(backendRemediation);
       setLoadingRemediation(false);
     }, 600);
   };
@@ -254,81 +227,125 @@ function App() {
             {remediationData && (
               <div className="bg-slate-900 border border-cyan-800/60 rounded-2xl p-6 space-y-4 animate-fadeIn">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
-                  <h4 className="text-sm font-bold text-cyan-300">🛠️ Chọn nền tảng Web Server mục tiêu</h4>
-                  
+                  <h4 className="text-sm font-bold text-cyan-300">🛠️ Cấu hình khắc phục theo nhóm</h4>
+
                   <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-                    <button
-                      onClick={() => setActiveTab('nginx')}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        activeTab === 'nginx' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      Nginx Server
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('apache')}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        activeTab === 'apache' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      Apache HTTP Server
-                    </button>
+                    {[
+                      ['headers', 'Headers'],
+                      ['cookie', 'Cookie'],
+                      ['tls', 'TLS/SSL'],
+                    ].map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          activeTab === tab ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-2">
-                  {(activeTab === 'nginx' ? remediationData.nginx : remediationData.apache).map((item, idx) => {
-                    const snippetId = `${activeTab}-${idx}`;
-                    const isCopied = copiedSnippetId === snippetId;
+                  {remediationData
+                    .filter((item) => {
+                      if (activeTab === 'headers') return item.id?.startsWith('header:');
+                      if (activeTab === 'cookie') return item.id?.startsWith('cookie:');
+                      if (activeTab === 'tls') return item.id?.startsWith('tls:');
+                      return false;
+                    })
+                    .map((item, idx) => {
+                      const isCookie = item.id?.startsWith('cookie:');
+                      const recommendations = isCookie
+                        ? [{ platform: 'application', fix: item.recommendation?.application }]
+                        : [
+                            { platform: 'nginx', fix: item.recommendation?.nginx },
+                            { platform: 'apache', fix: item.recommendation?.apache },
+                          ];
 
-                    return (
-                      <div key={idx} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-amber-400">{item.header}</span>
-                            {item.severity === 'critical' || item.severity === 'high' ? (
-                              <span className="bg-rose-900/50 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-800">
-                                Mức độ: {item.severity}
-                              </span>
-                            ) : null}
-                          </div>
-                          <span className="text-[10px] text-slate-500 uppercase font-mono bg-slate-900 px-2 py-1 rounded">{activeTab} syntax</span>
-                        </div>
-                        
-                        <div className="relative group mt-2">
-                          <button
-                            onClick={() => handleCopy(item.fix, 'snippet', snippetId)}
-                            className={`absolute top-2 right-2 text-[10px] px-2 py-1.5 rounded border transition-all duration-200 cursor-pointer ${
-                              isCopied 
-                                ? 'bg-emerald-900/80 text-emerald-400 border-emerald-700 opacity-100' 
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                            }`}
-                          >
-                            {isCopied ? '✓ Đã sao chép' : '📋 Copy'}
-                          </button>
-                          
-                          <pre className="text-xs font-mono text-emerald-300 overflow-x-auto bg-slate-900 p-4 rounded-lg border border-slate-800">
-                            {item.fix}
-                          </pre>
-                        </div>
-                        
-                        {item.warnings && item.warnings.length > 0 && (
-                          <div className="bg-rose-950/30 border border-rose-900/50 p-3 rounded-lg space-y-1 mt-2">
-                            <p className="text-[11px] font-bold text-rose-400 flex items-center gap-1">⚠️ Cảnh báo thay đổi:</p>
-                            <ul className="list-disc list-inside text-[11px] text-rose-300/80 space-y-0.5">
-                              {item.warnings.map((w, i) => (
-                                <li key={i}>{w}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      const availableRecommendations = recommendations.filter((r) => r.fix);
 
-                  {(activeTab === 'nginx' ? remediationData.nginx : remediationData.apache).length === 0 && (
+                      return (
+                        <div key={`${item.id}-${idx}`} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                          <div className="flex justify-between items-center gap-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-amber-400">{item.title}</span>
+                              {item.severity === 'critical' || item.severity === 'high' ? (
+                                <span className="bg-rose-900/50 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-800">
+                                  Mức độ: {item.severity}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          {item.reason && (
+                            <p className="text-xs text-slate-400">
+                              Nguyên nhân: <span className="text-slate-300">{item.reason}</span>
+                            </p>
+                          )}
+
+                          {availableRecommendations.length > 0 ? (
+                            <div className="space-y-3">
+                              {availableRecommendations.map((recommendation, recommendationIdx) => {
+                                const snippetId = `${item.id}-${recommendation.platform}-${recommendationIdx}`;
+                                const isCopied = copiedSnippetId === snippetId;
+
+                                return (
+                                  <div key={snippetId}>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <span className="text-[10px] text-slate-500 uppercase font-mono bg-slate-900 px-2 py-1 rounded">
+                                        {recommendation.platform === 'application' ? 'Application / Session' : `${recommendation.platform} syntax`}
+                                      </span>
+                                    </div>
+                                    <div className="relative group">
+                                      <button
+                                        onClick={() => handleCopy(recommendation.fix, 'snippet', snippetId)}
+                                        className={`absolute top-2 right-2 text-[10px] px-2 py-1.5 rounded border transition-all duration-200 cursor-pointer ${
+                                          isCopied
+                                            ? 'bg-emerald-900/80 text-emerald-400 border-emerald-700 opacity-100'
+                                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                                        }`}
+                                      >
+                                        {isCopied ? '✓ Đã sao chép' : '📋 Copy'}
+                                      </button>
+                                      <pre className="text-xs font-mono text-emerald-300 overflow-x-auto bg-slate-900 p-4 rounded-lg border border-slate-800">
+                                        {recommendation.fix}
+                                      </pre>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center text-slate-500 text-sm py-6 bg-slate-900 rounded-xl border border-slate-800 border-dashed">
+                              Chưa có cấu hình remediation trực tiếp cho finding này.
+                            </div>
+                          )}
+
+                          {item.warnings && item.warnings.length > 0 && (
+                            <div className="bg-rose-950/30 border border-rose-900/50 p-3 rounded-lg space-y-1 mt-2">
+                              <p className="text-[11px] font-bold text-rose-400 flex items-center gap-1">⚠️ Cảnh báo thay đổi:</p>
+                              <ul className="list-disc list-inside text-[11px] text-rose-300/80 space-y-0.5">
+                                {item.warnings.map((warning, warningIdx) => (
+                                  <li key={warningIdx}>{warning}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                  {remediationData.filter((item) => {
+                    if (activeTab === 'headers') return item.id?.startsWith('header:');
+                    if (activeTab === 'cookie') return item.id?.startsWith('cookie:');
+                    if (activeTab === 'tls') return item.id?.startsWith('tls:');
+                    return false;
+                  }).length === 0 && (
                     <div className="text-center text-slate-500 text-sm py-8 bg-slate-950 rounded-xl border border-slate-800 border-dashed">
-                      Không phát hiện cấu hình nào cần thiết phải bổ sung cho {activeTab.toUpperCase()}.
+                      Không phát hiện lỗ hổng cần khắc phục trong nhóm {activeTab === 'headers' ? 'Headers' : activeTab === 'cookie' ? 'Cookie' : 'TLS/SSL'}.
                     </div>
                   )}
                 </div>

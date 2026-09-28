@@ -282,12 +282,12 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
                 if not has_secure:
                     missing.append(secure.get("reason", "Missing Secure"))
                 this_score = SESSION_FAIL
-                this_reason = "; ".join(missing) + "in session cookie configuration."
+                this_reason = "; ".join(missing) + " in session cookie configuration."
             else:
                 if not has_secure:
                     missing.append(secure.get("reason", "Missing Secure"))
                 this_score = PERSISTENT_FAIL
-                this_reason = "; ".join(missing) + "in persistent cookie configuration."
+                this_reason = "; ".join(missing) + " in persistent cookie configuration."
         elif samesite_status == "pass":
             this_score = (
                 SESSION_SECURE_FULL if is_session_cookie else PERSISTENT_SECURE_FULL
@@ -301,7 +301,17 @@ def score_results(scan_results: Dict[str, Any]) -> Dict[str, Any]:
             )
             this_reason = samesite.get("reason", "SameSite missing or invalid")
             
-        tag_risk(items, "cookie", cookie_name, this_score, reason=this_reason, key_suffix=cookie_index)
+        for attribute_name in ("httponly", "secure", "samesite"):
+            attribute = attributes.get(attribute_name, {})
+            if attribute.get("status") in ("fail", "warn"):
+                tag_risk(
+                    attribute,
+                    "cookie",
+                    cookie_name,
+                    this_score,
+                    reason=attribute.get("reason", this_reason),
+                    key_suffix=f"{cookie_index}:{attribute_name}",
+                )
 
         if worst_cookie_score is None or worst_cookie_score > this_score:
             worst_cookie_name = cookie_name

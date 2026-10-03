@@ -66,9 +66,18 @@ async def scan_url(url: str) -> dict[str, Any]:
     # --------------------------------------------------
     # 3. TLS
     # --------------------------------------------------
-    tls_data, tls_meta = await fetch_tls(url)
+    final_url = header_meta.get("final_url") or url
 
-    tls_findings = check_tls_attributes(tls_data)
+    if header_meta.get("is_https"):
+        tls_data, tls_meta = await fetch_tls(final_url)
+        tls_findings = check_tls_attributes(tls_data)
+    else:
+        tls_findings = {}
+        tls_meta = {
+            "hostname": None,
+            "port": None,
+            "error": "TLS check skipped: final URL is not HTTPS",
+        }
 
     # --------------------------------------------------
     # 4. Combine scan results

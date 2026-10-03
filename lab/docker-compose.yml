@@ -1,0 +1,31 @@
+services:
+  nginx-insecure:
+    image: nginx:1.27-alpine
+    ports: ["8080:80", "8443:443"]
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./nginx/insecure.conf:/etc/nginx/conf.d/default.conf:ro
+  nginx-secure:
+    image: nginx:1.27-alpine
+    ports: ["9080:80", "9443:443"]
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./nginx/secure.conf:/etc/nginx/conf.d/default.conf:ro
+  apache-insecure:
+    image: httpd:2.4
+    ports: ["8180:80", "8543:443"]
+    volumes:
+      - ./html:/usr/local/apache2/htdocs:ro
+      - ./certs:/usr/local/apache2/certs:ro
+      - ./apache/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
+      - ./apache/insecure.conf:/usr/local/apache2/conf/site.conf:ro
+  apache-secure:
+    image: httpd:2.4
+    ports: ["9180:80", "9543:443"]
+    volumes:
+      - ./html:/usr/local/apache2/htdocs:ro
+      - ./certs:/usr/local/apache2/certs:ro
+      - ./apache/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
+      - ./apache/secure.conf:/usr/local/apache2/conf/site.conf:ro
